@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // FlowRegistry holds named flows and runs them by name.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 	smritea "github.com/SmrutAI/smritea-sdk/go"
 )
 

@@ -1,4 +1,4 @@
-module github.com/SmrutAI/ingestion-pipeline
+module github.com/SmrutAI/databridge
 
 go 1.25.0
 

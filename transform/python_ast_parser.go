@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
-	"github.com/SmrutAI/ingestion-pipeline/internal/merkle"
-	"github.com/SmrutAI/ingestion-pipeline/internal/parser"
+	"github.com/SmrutAI/databridge/internal/core"
+	"github.com/SmrutAI/databridge/internal/merkle"
+	"github.com/SmrutAI/databridge/internal/parser"
 )
 
 // PythonASTParser parses Python source files into one Record per top-level function or class.

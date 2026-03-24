@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // NewEmbedder creates an Embedder based on the CODEWATCH_EMBEDDER environment variable.

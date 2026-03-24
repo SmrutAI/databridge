@@ -9,7 +9,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	azcontainer "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // AzureBlobSource lists blobs from an Azure Blob Storage container under a prefix.

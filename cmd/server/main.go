@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
-	"github.com/SmrutAI/ingestion-pipeline/internal/store"
-	"github.com/SmrutAI/ingestion-pipeline/server"
+	"github.com/SmrutAI/databridge/internal/flow"
+	"github.com/SmrutAI/databridge/internal/store"
+	"github.com/SmrutAI/databridge/server"
 )
 
 func main() {

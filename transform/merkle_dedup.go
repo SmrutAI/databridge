@@ -3,8 +3,8 @@ package transform
 import (
 	"context"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
-	"github.com/SmrutAI/ingestion-pipeline/internal/merkle"
+	"github.com/SmrutAI/databridge/internal/core"
+	"github.com/SmrutAI/databridge/internal/merkle"
 )
 
 // MerkleDedup skips Records whose content hash matches the stored snapshot,

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/store"
+	"github.com/SmrutAI/databridge/internal/store"
 )
 
 // LoadFromPostgres populates the Tree from the merkle_snapshots table.

@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
-	"github.com/SmrutAI/ingestion-pipeline/internal/store"
+	"github.com/SmrutAI/databridge/internal/flow"
+	"github.com/SmrutAI/databridge/internal/store"
 )
 
 // IndexRequest is the payload for POST /v1/index.
@@ -46,7 +46,7 @@ func handleHealth() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{
 			"status":  "ok",
-			"service": "ingestion-pipeline",
+			"service": "databridge",
 		})
 	}
 }

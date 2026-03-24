@@ -8,7 +8,7 @@ import (
 	pgvector "github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // PostgresSink upserts Records into the chunks table with pgvector embeddings.

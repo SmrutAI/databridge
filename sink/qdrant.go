@@ -8,7 +8,7 @@ import (
 
 	"github.com/qdrant/go-client/qdrant"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // QdrantSink upserts each Record as a point in a Qdrant collection.

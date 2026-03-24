@@ -1,4 +1,4 @@
-# Pre-commit hooks configuration for ingestion-pipeline
+# Pre-commit hooks configuration for databridge
 #
 # Setup:
 #   pip install pre-commit && pre-commit install

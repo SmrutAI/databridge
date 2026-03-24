@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	echoadapter "github.com/awslabs/aws-lambda-go-api-proxy/echo"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
-	"github.com/SmrutAI/ingestion-pipeline/internal/store"
-	"github.com/SmrutAI/ingestion-pipeline/server"
+	"github.com/SmrutAI/databridge/internal/flow"
+	"github.com/SmrutAI/databridge/internal/store"
+	"github.com/SmrutAI/databridge/server"
 )
 
 var echoLambda *echoadapter.EchoLambda

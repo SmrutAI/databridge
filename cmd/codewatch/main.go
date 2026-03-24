@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/embedder"
-	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
-	"github.com/SmrutAI/ingestion-pipeline/internal/merkle"
-	"github.com/SmrutAI/ingestion-pipeline/sink"
-	"github.com/SmrutAI/ingestion-pipeline/source"
-	"github.com/SmrutAI/ingestion-pipeline/transform"
+	"github.com/SmrutAI/databridge/internal/embedder"
+	"github.com/SmrutAI/databridge/internal/flow"
+	"github.com/SmrutAI/databridge/internal/merkle"
+	"github.com/SmrutAI/databridge/sink"
+	"github.com/SmrutAI/databridge/source"
+	"github.com/SmrutAI/databridge/transform"
 )
 
 func main() {

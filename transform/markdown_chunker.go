@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
-	"github.com/SmrutAI/ingestion-pipeline/internal/merkle"
+	"github.com/SmrutAI/databridge/internal/core"
+	"github.com/SmrutAI/databridge/internal/merkle"
 )
 
 // MarkdownChunker splits Markdown files into one Record per heading section.

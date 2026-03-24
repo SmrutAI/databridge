@@ -46,7 +46,7 @@ LINT_FLAGS = $(if $(LINTERS),--enable-only=$(LINTERS),) $(if $(FILES),$(subst $(
 # ============================================
 
 help: ## Show this help
-	@echo "ingestion-pipeline — code indexing pipeline"
+	@echo "databridge — code indexing pipeline"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
@@ -90,16 +90,16 @@ build-check: test-output-dir ## Compile-check all packages (no output binaries, 
 	@echo "Build check running. Read test-outputs/build-check.log for details"
 	@echo "=== Production code ===" | tee test-outputs/build-check.log
 	@FAILED=0; \
-	echo "  ingestion-pipeline..." | tee -a test-outputs/build-check.log; \
+	echo "  databridge..." | tee -a test-outputs/build-check.log; \
 	if ! bash -c 'set -o pipefail; CGO_ENABLED=1 go build -gcflags="-e" ./... 2>&1 | tee -a test-outputs/build-check.log'; then \
-		echo "  ✗ FAILED: ingestion-pipeline" | tee -a test-outputs/build-check.log; FAILED=1; \
+		echo "  ✗ FAILED: databridge" | tee -a test-outputs/build-check.log; FAILED=1; \
 	fi; \
 	[ $$FAILED -eq 0 ] || exit 1
 	@echo "=== Unit tests ===" | tee -a test-outputs/build-check.log
 	@FAILED=0; \
-	echo "  ingestion-pipeline..." | tee -a test-outputs/build-check.log; \
+	echo "  databridge..." | tee -a test-outputs/build-check.log; \
 	if ! bash -c 'CGO_ENABLED=1 go test -c -gcflags="-e" -o /dev/null ./... 2>&1 | (grep -v "no test files" || true) | tee -a test-outputs/build-check.log; exit $${PIPESTATUS[0]}'; then \
-		echo "  ✗ FAILED: ingestion-pipeline" | tee -a test-outputs/build-check.log; FAILED=1; \
+		echo "  ✗ FAILED: databridge" | tee -a test-outputs/build-check.log; FAILED=1; \
 	fi; \
 	[ $$FAILED -eq 0 ] || exit 1
 	@echo "✓ Build check passed" | tee -a test-outputs/build-check.log
@@ -142,7 +142,7 @@ test-run: test-output-dir ## Run Go tests (TAGS/RUN/PKG for filtering)
 # ============================================
 
 format: ## Format Go code (golangci-lint --fix + goimports + gci)
-	@echo "Formatting ingestion-pipeline..."
+	@echo "Formatting databridge..."
 	@golangci-lint run --fix ./... 2>/dev/null || true
 	@echo "Fixing imports with goimports..."
 	@goimports -w .
@@ -171,13 +171,13 @@ check: format build-check lint test-run ## Run format, build-check, lint, and te
 # ============================================
 
 docker-lambda: ## Build Lambda Docker image
-	docker build --target lambda-intake -t ingestion-pipeline-lambda .
+	docker build --target lambda-intake -t databridge-lambda .
 
 docker-azure: ## Build Azure Functions Docker image
-	docker build --target azure-functions -t ingestion-pipeline-azure .
+	docker build --target azure-functions -t databridge-azure .
 
 docker-server: ## Build standalone server Docker image
-	docker build --target standalone -t ingestion-pipeline-server .
+	docker build --target standalone -t databridge-server .
 
 # ============================================
 # DEPS

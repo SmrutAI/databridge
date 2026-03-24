@@ -9,7 +9,7 @@ import (
 
 	"github.com/tushar2708/conveyor"
 
-	"github.com/SmrutAI/ingestion-pipeline/internal/core"
+	"github.com/SmrutAI/databridge/internal/core"
 )
 
 // Flow is a configured pipeline ready to run.

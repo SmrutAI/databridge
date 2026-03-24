@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 #
 # Build context must be the smritea-cloud root:
-#   docker build -f ingestion-pipeline/Dockerfile --target <target> .
+#   docker build -f databridge/Dockerfile --target <target> .
 #
-# go.work replace directives inside ingestion-pipeline/ reference ../conveyor
+# go.work replace directives inside databridge/ reference ../conveyor
 # and ../smritea-sdk/go.  We therefore copy all three sibling trees into /src/
-# so that /src/ingestion-pipeline/go.work can resolve ../conveyor → /src/conveyor.
+# so that /src/databridge/go.work can resolve ../conveyor → /src/conveyor.
 
 # ── build stage ──────────────────────────────────────────────────────────────
 FROM golang:1.22-bookworm AS builder
@@ -18,9 +18,9 @@ COPY smritea-sdk/go/ ./smritea-sdk/go/
 
 # Copy the pipeline source tree; go.work lives here and its replace directives
 # now resolve correctly: ../conveyor → /src/conveyor, ../smritea-sdk/go → /src/smritea-sdk/go
-COPY ingestion-pipeline/ ./ingestion-pipeline/
+COPY databridge/ ./databridge/
 
-WORKDIR /src/ingestion-pipeline
+WORKDIR /src/databridge
 
 RUN go mod download
 
@@ -36,8 +36,8 @@ CMD ["bootstrap"]
 # ── azure-functions ──────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS azure-functions
 COPY --from=builder /out/server /app/server
-COPY ingestion-pipeline/host.json /app/host.json
-COPY ingestion-pipeline/api/      /app/api/
+COPY databridge/host.json /app/host.json
+COPY databridge/api/      /app/api/
 WORKDIR /app
 CMD ["/app/server"]
 
