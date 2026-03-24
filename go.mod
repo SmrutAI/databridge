@@ -10,13 +10,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.61.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.0
-	github.com/jackc/pgx/v5 v5.7.0
 	github.com/knights-analytics/hugot v0.6.5
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/pgvector/pgvector-go v0.2.2
 	github.com/qdrant/go-client v1.17.0
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	github.com/tushar2708/conveyor v0.0.0
+	gorm.io/driver/postgres v1.5.7
+	gorm.io/gorm v1.25.7
 )
 
 require (
@@ -52,7 +53,10 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.7.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/knights-analytics/ortgenai v0.1.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

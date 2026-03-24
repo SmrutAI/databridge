@@ -90,7 +90,7 @@ func (s *AzureBlobSource) Records(ctx context.Context) (<-chan *core.Record, err
 				rel := strings.TrimPrefix(name, s.prefix)
 				rel = strings.TrimPrefix(rel, "/")
 				r := &core.Record{
-					ID:       newID(),
+					ID:       deterministicID(s.workspaceID, rel),
 					SourceID: s.workspaceID,
 					Path:     rel,
 					Language: langFromExt(ext),

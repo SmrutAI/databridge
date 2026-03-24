@@ -3,69 +3,50 @@ package store
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
-
-// Job represents a single async indexing job.
-type Job struct {
-	ID          string
-	WorkspaceID string
-	Status      string // queued, running, done, failed
-	TotalFiles  int
-	Done        int
-	Failed      int
-	ErrorMsg    string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
 
 // JobStore provides CRUD operations for the index_jobs table.
 type JobStore struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-// NewJobStore returns a JobStore backed by the given pool.
-func NewJobStore(pool *pgxpool.Pool) *JobStore {
-	return &JobStore{pool: pool}
+// NewJobStore returns a JobStore backed by the given GORM DB.
+func NewJobStore(db *gorm.DB) *JobStore {
+	return &JobStore{db: db}
 }
 
-// Create inserts a new job and returns the generated ID.
+// Create inserts a new job and returns it with the generated ID.
 func (s *JobStore) Create(ctx context.Context, workspaceID string, totalFiles int) (*Job, error) {
-	row := s.pool.QueryRow(ctx,
-		`INSERT INTO index_jobs (workspace_id, total_files)
-		 VALUES ($1, $2)
-		 RETURNING id, workspace_id, status, total_files, done, failed, error_msg, created_at, updated_at`,
-		workspaceID, totalFiles,
-	)
-	j := &Job{}
-	if err := row.Scan(&j.ID, &j.WorkspaceID, &j.Status, &j.TotalFiles, &j.Done, &j.Failed, &j.ErrorMsg, &j.CreatedAt, &j.UpdatedAt); err != nil {
+	j := &Job{
+		WorkspaceID: workspaceID,
+		Status:      "queued",
+		TotalFiles:  totalFiles,
+	}
+	if err := s.db.WithContext(ctx).Create(j).Error; err != nil {
 		return nil, fmt.Errorf("jobs: create: %w", err)
 	}
 	return j, nil
 }
 
 // Get retrieves a job by ID.
+// Returns gorm.ErrRecordNotFound (wrapped) when the job does not exist.
 func (s *JobStore) Get(ctx context.Context, jobID string) (*Job, error) {
-	row := s.pool.QueryRow(ctx,
-		`SELECT id, workspace_id, status, total_files, done, failed, error_msg, created_at, updated_at
-		 FROM index_jobs WHERE id = $1`,
-		jobID,
-	)
-	j := &Job{}
-	if err := row.Scan(&j.ID, &j.WorkspaceID, &j.Status, &j.TotalFiles, &j.Done, &j.Failed, &j.ErrorMsg, &j.CreatedAt, &j.UpdatedAt); err != nil {
+	var j Job
+	if err := s.db.WithContext(ctx).First(&j, "id = ?", jobID).Error; err != nil {
 		return nil, fmt.Errorf("jobs: get %s: %w", jobID, err)
 	}
-	return j, nil
+	return &j, nil
 }
 
 // UpdateStatus sets the job status and optionally an error message.
 func (s *JobStore) UpdateStatus(ctx context.Context, jobID, status, errorMsg string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE index_jobs SET status=$1, error_msg=$2, updated_at=NOW() WHERE id=$3`,
-		status, errorMsg, jobID,
-	)
+	err := s.db.WithContext(ctx).
+		Model(&Job{}).
+		Where("id = ?", jobID).
+		Updates(map[string]any{"status": status, "error_msg": errorMsg}).
+		Error
 	if err != nil {
 		return fmt.Errorf("jobs: update status %s: %w", jobID, err)
 	}
@@ -74,10 +55,11 @@ func (s *JobStore) UpdateStatus(ctx context.Context, jobID, status, errorMsg str
 
 // IncrementDone atomically increments the done counter for a job.
 func (s *JobStore) IncrementDone(ctx context.Context, jobID string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE index_jobs SET done = done + 1, updated_at = NOW() WHERE id = $1`,
-		jobID,
-	)
+	err := s.db.WithContext(ctx).
+		Model(&Job{}).
+		Where("id = ?", jobID).
+		UpdateColumn("done", gorm.Expr("done + 1")).
+		Error
 	if err != nil {
 		return fmt.Errorf("jobs: increment done %s: %w", jobID, err)
 	}
@@ -86,10 +68,11 @@ func (s *JobStore) IncrementDone(ctx context.Context, jobID string) error {
 
 // IncrementFailed atomically increments the failed counter for a job.
 func (s *JobStore) IncrementFailed(ctx context.Context, jobID string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE index_jobs SET failed = failed + 1, updated_at = NOW() WHERE id = $1`,
-		jobID,
-	)
+	err := s.db.WithContext(ctx).
+		Model(&Job{}).
+		Where("id = ?", jobID).
+		UpdateColumn("failed", gorm.Expr("failed + 1")).
+		Error
 	if err != nil {
 		return fmt.Errorf("jobs: increment failed %s: %w", jobID, err)
 	}

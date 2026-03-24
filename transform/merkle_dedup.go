@@ -25,7 +25,13 @@ func (t *MerkleDedup) Name() string { return "MerkleDedup" }
 // Apply computes the content hash for in.Content and checks it against the tree.
 // If the hash is unchanged, it returns a nil slice so the pipeline drops the record.
 // If new or changed, it updates the tree and returns the record with ContentHash set.
+// ActionDelete records are passed straight through — sinks handle the deletion.
 func (t *MerkleDedup) Apply(_ context.Context, in *core.Record) ([]*core.Record, error) {
+	// Pass ActionDelete records straight through — sinks handle the deletion.
+	if in.Action == core.ActionDelete {
+		return []*core.Record{in}, nil
+	}
+
 	hash := merkle.HashContent([]byte(in.Content))
 
 	if stored, ok := t.tree.Get(in.Path); ok && stored == hash {

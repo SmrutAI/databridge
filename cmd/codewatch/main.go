@@ -6,13 +6,18 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/SmrutAI/ingestion-pipeline/internal/embedder"
 	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
+	"github.com/SmrutAI/ingestion-pipeline/internal/merkle"
+	"github.com/SmrutAI/ingestion-pipeline/sink"
 	"github.com/SmrutAI/ingestion-pipeline/source"
+	"github.com/SmrutAI/ingestion-pipeline/transform"
 )
 
 func main() {
 	input := flag.String("input", "", "Path to the directory to index (required)")
 	workspace := flag.String("workspace", "", "Workspace ID to associate with indexed files (required)")
+	_ = flag.String("source", "local", "Source type: local, s3, azure")
 	flag.Parse()
 
 	if *input == "" || *workspace == "" {
@@ -20,11 +25,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	emb, err := embedder.NewEmbedder()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create embedder: %v\n", err)
+		os.Exit(1)
+	}
+
+	tree := merkle.NewTree()
+
+	smriteaSink, err := sink.NewSmriteaSink()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create smritea sink: %v\n", err)
+		os.Exit(1)
+	}
+
 	src := source.NewLocalFileSource(*workspace, *input, nil)
 	registry := flow.NewFlowRegistry()
 
 	f := flow.NewFlow("local-index").
-		Source(src)
+		Source(src).
+		Transform(transform.NewMerkleDedup(tree)).
+		Transform(&transform.GoASTParser{}).
+		Transform(transform.NewChunkEmbedder(emb)).
+		Sink(smriteaSink)
 
 	if err := registry.Register(f); err != nil {
 		fmt.Fprintf(os.Stderr, "register flow: %v\n", err)

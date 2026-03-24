@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -72,7 +73,7 @@ func (f *Flow) Run(ctx context.Context) (*core.FlowStats, error) {
 	}()
 
 	start := time.Now()
-	var recordsIn, recordsOut atomic.Int64
+	var recordsIn, recordsOut, recordsSkipped atomic.Int64
 
 	cnv, err := conveyor.NewConveyor(f.name, 100)
 	if err != nil {
@@ -116,6 +117,7 @@ func (f *Flow) Run(ctx context.Context) (*core.FlowStats, error) {
 			},
 			transform: t,
 			ctx:       ctx,
+			skipped:   &recordsSkipped,
 		}
 		if err := conveyor.AddOperation[*core.RecordBatch, *core.RecordBatch](cnv, ta, conveyor.WorkerModeTransaction); err != nil {
 			return nil, fmt.Errorf("flow %s: add transform %s: %w", f.name, t.Name(), err)
@@ -138,12 +140,13 @@ func (f *Flow) Run(ctx context.Context) (*core.FlowStats, error) {
 	pipelineErr := cnv.Start()
 
 	stats := &core.FlowStats{
-		FlowName:      f.name,
-		RecordsIn:     recordsIn.Load(),
-		RecordsOut:    recordsOut.Load(),
-		RecordsFailed: cnv.Errors().Total(),
-		ErrorsByStage: cnv.Errors().Snapshot(),
-		Duration:      time.Since(start),
+		FlowName:       f.name,
+		RecordsIn:      recordsIn.Load(),
+		RecordsOut:     recordsOut.Load(),
+		RecordsSkipped: recordsSkipped.Load(),
+		RecordsFailed:  cnv.Errors().Total(),
+		ErrorsByStage:  cnv.Errors().Snapshot(),
+		Duration:       time.Since(start),
 	}
 	if pipelineErr != nil {
 		stats.Error = pipelineErr.Error()
@@ -199,19 +202,25 @@ func (a *batchifyAdapter) Execute(_ conveyor.CnvContext, r *core.Record) (*core.
 // batchTransformAdapter applies a core.Transform to every record in the input batch
 // and collects all results (0..N per record) into a new output batch.
 // This supports 1:N fan-out (e.g. AST parsers) while using WorkerModeTransaction.
+// When a transform returns an empty result for a record, skipped is incremented.
 type batchTransformAdapter struct {
 	*conveyor.ConcreteOperationExecutor[*core.RecordBatch, *core.RecordBatch]
 	transform core.Transform
 	ctx       context.Context
+	skipped   *atomic.Int64
 }
 
 // Execute processes the entire batch through the transform.
+// Records for which the transform returns zero results are counted as skipped.
 func (a *batchTransformAdapter) Execute(_ conveyor.CnvContext, batch *core.RecordBatch) (*core.RecordBatch, error) {
 	var out core.RecordBatch
 	for i := range *batch {
 		results, err := a.transform.Apply(a.ctx, (*batch)[i])
 		if err != nil {
 			return nil, fmt.Errorf("transform %s: apply: %w", a.transform.Name(), err)
+		}
+		if len(results) == 0 {
+			a.skipped.Add(1)
 		}
 		out = append(out, results...)
 	}
@@ -229,16 +238,24 @@ type multiSinkAdapter struct {
 }
 
 // Execute writes every record in the batch to all sinks.
-// It returns the first error encountered; subsequent records and sinks are not called on failure.
+// All sinks are called for every record regardless of individual sink errors.
+// Errors from all failing sinks are combined via errors.Join and returned after
+// the full batch has been processed. Only records that succeeded in all sinks
+// are counted toward the output counter.
 func (a *multiSinkAdapter) Execute(_ conveyor.CnvContext, batch *core.RecordBatch) error {
+	var errs []error
 	for i := range *batch {
 		r := (*batch)[i]
+		var recErrs []error
 		for j := range a.sinks {
 			if err := a.sinks[j].Write(a.ctx, r); err != nil {
-				return fmt.Errorf("sink %s: write %s#%s: %w", a.sinks[j].Name(), r.Path, r.Symbol, err)
+				recErrs = append(recErrs, fmt.Errorf("sink %s: write %s#%s: %w", a.sinks[j].Name(), r.Path, r.Symbol, err))
 			}
 		}
-		a.counter.Add(1)
+		if len(recErrs) == 0 {
+			a.counter.Add(1)
+		}
+		errs = append(errs, recErrs...)
 	}
-	return nil
+	return errors.Join(errs...)
 }

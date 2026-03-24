@@ -2,49 +2,31 @@ package store
 
 import (
 	"context"
-	"embed"
 	"fmt"
-	"strings"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
-
-// NewPool creates and validates a pgx connection pool for the given DSN.
-func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, dsn)
+// New opens a GORM database connection for the given DSN.
+// The context is accepted for API symmetry but GORM's Open is synchronous.
+func New(_ context.Context, dsn string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("store: create pool: %w", err)
+		return nil, fmt.Errorf("store: open db: %w", err)
 	}
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("store: ping: %w", err)
-	}
-	return pool, nil
+	return db, nil
 }
 
-// RunMigrations executes all *.sql files embedded in the migrations directory.
-// Files are run in alphabetical order. Each file is executed as a single statement block.
-func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	entries, err := migrationsFS.ReadDir("migrations")
-	if err != nil {
-		return fmt.Errorf("store: read migrations dir: %w", err)
+// AutoMigrate creates or updates all tables managed by this package.
+// It enables the pgvector extension first, then runs GORM AutoMigrate
+// for MerkleSnapshot, Chunk, and Job.
+func AutoMigrate(db *gorm.DB) error {
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS vector").Error; err != nil {
+		return fmt.Errorf("store: create vector extension: %w", err)
 	}
-
-	for i := range entries {
-		entry := entries[i]
-		if !strings.HasSuffix(entry.Name(), ".sql") {
-			continue
-		}
-		data, err := migrationsFS.ReadFile("migrations/" + entry.Name())
-		if err != nil {
-			return fmt.Errorf("store: read migration %s: %w", entry.Name(), err)
-		}
-		if _, err := pool.Exec(ctx, string(data)); err != nil {
-			return fmt.Errorf("store: run migration %s: %w", entry.Name(), err)
-		}
+	if err := db.AutoMigrate(&MerkleSnapshot{}, &Chunk{}, &Job{}); err != nil {
+		return fmt.Errorf("store: auto migrate: %w", err)
 	}
 	return nil
 }

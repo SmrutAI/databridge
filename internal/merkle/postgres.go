@@ -4,33 +4,26 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/SmrutAI/ingestion-pipeline/internal/store"
 )
 
 // LoadFromPostgres populates the Tree from the merkle_snapshots table.
 // workspaceID scopes the query to a single workspace.
-func LoadFromPostgres(ctx context.Context, pool *pgxpool.Pool, workspaceID string, tree *Tree) error {
-	rows, err := pool.Query(ctx,
-		`SELECT file_path, content_hash FROM merkle_snapshots WHERE workspace_id = $1`,
-		workspaceID,
-	)
-	if err != nil {
+func LoadFromPostgres(ctx context.Context, db *gorm.DB, workspaceID string, tree *Tree) error {
+	var snapshots []store.MerkleSnapshot
+	if err := db.WithContext(ctx).
+		Where("workspace_id = ?", workspaceID).
+		Find(&snapshots).Error; err != nil {
 		return fmt.Errorf("merkle: query snapshots: %w", err)
 	}
-	defer rows.Close()
 
-	hashes := make(map[string]string)
-	for rows.Next() {
-		var path, hash string
-		if err := rows.Scan(&path, &hash); err != nil {
-			return fmt.Errorf("merkle: scan row: %w", err)
-		}
-		hashes[path] = hash
+	hashes := make(map[string]string, len(snapshots))
+	for i := range snapshots {
+		hashes[snapshots[i].FilePath] = snapshots[i].ContentHash
 	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("merkle: rows error: %w", err)
-	}
-
 	tree.Load(hashes)
 	return nil
 }
@@ -38,43 +31,38 @@ func LoadFromPostgres(ctx context.Context, pool *pgxpool.Pool, workspaceID strin
 // SaveToPostgres upserts the current tree snapshot into merkle_snapshots.
 // Rows with paths no longer in the tree are NOT deleted here — deletion is
 // handled per-record by the pipeline when Action == ActionDelete.
-func SaveToPostgres(ctx context.Context, pool *pgxpool.Pool, workspaceID string, tree *Tree) error {
+func SaveToPostgres(ctx context.Context, db *gorm.DB, workspaceID string, tree *Tree) error {
 	snap := tree.Snapshot()
 	if len(snap) == 0 {
 		return nil
 	}
 
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("merkle: begin tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
+	rows := make([]store.MerkleSnapshot, 0, len(snap))
 	for path, hash := range snap {
-		_, err := tx.Exec(ctx,
-			`INSERT INTO merkle_snapshots (workspace_id, file_path, content_hash, updated_at)
-			 VALUES ($1, $2, $3, NOW())
-			 ON CONFLICT (workspace_id, file_path)
-			 DO UPDATE SET content_hash = EXCLUDED.content_hash, updated_at = NOW()`,
-			workspaceID, path, hash,
-		)
-		if err != nil {
-			return fmt.Errorf("merkle: upsert %s: %w", path, err)
-		}
+		rows = append(rows, store.MerkleSnapshot{
+			WorkspaceID: workspaceID,
+			FilePath:    path,
+			ContentHash: hash,
+		})
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("merkle: commit: %w", err)
+	err := db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "workspace_id"}, {Name: "file_path"}},
+			DoUpdates: clause.AssignmentColumns([]string{"content_hash", "updated_at"}),
+		}).
+		Create(&rows).Error
+	if err != nil {
+		return fmt.Errorf("merkle: upsert snapshots: %w", err)
 	}
 	return nil
 }
 
 // DeleteFromPostgres removes a specific file's snapshot from the table.
-func DeleteFromPostgres(ctx context.Context, pool *pgxpool.Pool, workspaceID, filePath string) error {
-	_, err := pool.Exec(ctx,
-		`DELETE FROM merkle_snapshots WHERE workspace_id = $1 AND file_path = $2`,
-		workspaceID, filePath,
-	)
+func DeleteFromPostgres(ctx context.Context, db *gorm.DB, workspaceID, filePath string) error {
+	err := db.WithContext(ctx).
+		Where("workspace_id = ? AND file_path = ?", workspaceID, filePath).
+		Delete(&store.MerkleSnapshot{}).Error
 	if err != nil {
 		return fmt.Errorf("merkle: delete %s: %w", filePath, err)
 	}

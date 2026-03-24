@@ -33,10 +33,8 @@ func ParseGo(filePath, src string) ([]GoChunk, error) {
 			chunk := extractFunc(d, fset, lines)
 			chunks = append(chunks, chunk)
 		case *ast.GenDecl:
-			chunk := extractGenDecl(d, fset, lines)
-			if chunk.Symbol != "" {
-				chunks = append(chunks, chunk)
-			}
+			genChunks := extractGenDeclChunks(d, fset, lines)
+			chunks = append(chunks, genChunks...)
 		}
 	}
 
@@ -74,38 +72,46 @@ func extractFunc(d *ast.FuncDecl, fset *token.FileSet, lines []string) GoChunk {
 	return GoChunk{Symbol: symbol, SymbolType: symbolType, Content: content}
 }
 
-func extractGenDecl(d *ast.GenDecl, fset *token.FileSet, lines []string) GoChunk {
-	start := fset.Position(d.Pos()).Line - 1
-	end := fset.Position(d.End()).Line
-	if end > len(lines) {
-		end = len(lines)
-	}
-	content := strings.Join(lines[start:end], "\n")
+// extractGenDeclChunks fans out a GenDecl (var/const/type block) into one GoChunk
+// per spec, and one per name within each var/const spec. This ensures every symbol
+// in a multi-declaration block is indexed independently rather than only the first.
+func extractGenDeclChunks(d *ast.GenDecl, fset *token.FileSet, lines []string) []GoChunk {
+	var chunks []GoChunk
+	for _, spec := range d.Specs {
+		specStart := fset.Position(spec.Pos()).Line - 1
+		specEnd := fset.Position(spec.End()).Line
+		if specEnd > len(lines) {
+			specEnd = len(lines)
+		}
+		content := strings.Join(lines[specStart:specEnd], "\n")
+		if strings.TrimSpace(content) == "" {
+			continue
+		}
 
-	var symbolType, symbol string
-	switch d.Tok {
-	case token.TYPE:
-		symbolType = "type"
-		if len(d.Specs) > 0 {
-			if ts, ok := d.Specs[0].(*ast.TypeSpec); ok {
-				symbol = ts.Name.Name
+		switch d.Tok {
+		case token.TYPE:
+			if ts, ok := spec.(*ast.TypeSpec); ok {
+				chunks = append(chunks, GoChunk{
+					Symbol:     ts.Name.Name,
+					SymbolType: "type",
+					Content:    content,
+				})
 			}
-		}
-	case token.VAR:
-		symbolType = "var"
-		if len(d.Specs) > 0 {
-			if vs, ok := d.Specs[0].(*ast.ValueSpec); ok && len(vs.Names) > 0 {
-				symbol = vs.Names[0].Name
-			}
-		}
-	case token.CONST:
-		symbolType = "const"
-		if len(d.Specs) > 0 {
-			if vs, ok := d.Specs[0].(*ast.ValueSpec); ok && len(vs.Names) > 0 {
-				symbol = vs.Names[0].Name
+		case token.VAR, token.CONST:
+			if vs, ok := spec.(*ast.ValueSpec); ok {
+				symbolType := "var"
+				if d.Tok == token.CONST {
+					symbolType = "const"
+				}
+				for _, name := range vs.Names {
+					chunks = append(chunks, GoChunk{
+						Symbol:     name.Name,
+						SymbolType: symbolType,
+						Content:    content,
+					})
+				}
 			}
 		}
 	}
-
-	return GoChunk{Symbol: symbol, SymbolType: symbolType, Content: content}
+	return chunks
 }

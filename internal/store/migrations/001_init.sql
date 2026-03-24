@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS chunks (
     language        TEXT NOT NULL,
     content         TEXT NOT NULL,
     content_hash    TEXT NOT NULL,
-    embedding       vector(384),
+    embedding       vector(1024),
     metadata        JSONB NOT NULL DEFAULT '{}',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

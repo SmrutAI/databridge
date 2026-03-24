@@ -2,7 +2,7 @@ package source
 
 import (
 	"context"
-	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io/fs"
@@ -85,7 +85,7 @@ func (s *LocalFileSource) Records(ctx context.Context) (<-chan *core.Record, err
 				rel = path
 			}
 			r := &core.Record{
-				ID:       newID(),
+				ID:       deterministicID(s.workspaceID, rel),
 				SourceID: s.workspaceID,
 				Path:     rel,
 				Language: langFromExt(ext),
@@ -135,9 +135,10 @@ func langFromExt(ext string) string {
 	}
 }
 
-// newID generates a random 16-character hex string for use as a record ID.
-func newID() string {
-	b := make([]byte, 8)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
+// deterministicID returns a stable hex ID derived from workspaceID and path.
+// Using SHA-256 ensures the same file in the same workspace always maps to
+// the same Qdrant point ID, enabling true upsert semantics across pipeline runs.
+func deterministicID(workspaceID, path string) string {
+	h := sha256.Sum256([]byte(workspaceID + ":" + path))
+	return hex.EncodeToString(h[:])
 }

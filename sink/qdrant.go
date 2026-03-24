@@ -66,9 +66,33 @@ func (s *QdrantSink) Open(_ context.Context) error { return nil }
 
 // Write upserts a single Record as a Qdrant point.
 // Records with an empty Embedding are skipped — no vector means no point.
-// ActionDelete records are skipped in this sink; deletion is handled by PostgresSink.
+// ActionDelete records remove all points matching workspace_id AND file_path.
 func (s *QdrantSink) Write(ctx context.Context, r *core.Record) error {
 	if r.Action == core.ActionDelete {
+		wait := true
+		_, err := s.pointsClient.Delete(ctx, &qdrant.DeletePoints{
+			CollectionName: s.collection,
+			Points: &qdrant.PointsSelector{
+				PointsSelectorOneOf: &qdrant.PointsSelector_Filter{
+					Filter: &qdrant.Filter{
+						Must: []*qdrant.Condition{
+							{ConditionOneOf: &qdrant.Condition_Field{Field: &qdrant.FieldCondition{
+								Key:   "workspace_id",
+								Match: &qdrant.Match{MatchValue: &qdrant.Match_Keyword{Keyword: r.SourceID}},
+							}}},
+							{ConditionOneOf: &qdrant.Condition_Field{Field: &qdrant.FieldCondition{
+								Key:   "file_path",
+								Match: &qdrant.Match{MatchValue: &qdrant.Match_Keyword{Keyword: r.Path}},
+							}}},
+						},
+					},
+				},
+			},
+			Wait: &wait,
+		})
+		if err != nil {
+			return fmt.Errorf("qdrant sink: delete %s: %w", r.Path, err)
+		}
 		return nil
 	}
 	if len(r.Embedding) == 0 {

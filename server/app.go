@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
 
 	"github.com/SmrutAI/ingestion-pipeline/internal/flow"
 	"github.com/SmrutAI/ingestion-pipeline/internal/store"
@@ -31,10 +33,22 @@ func NewApp(registry *flow.FlowRegistry, jobs *store.JobStore) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 
+	e.GET("/v1/health", handleHealth())
 	e.POST("/v1/index", handleIndex(registry, jobs))
 	e.GET("/v1/jobs/:id", handleGetJob(jobs))
+	e.GET("/v1/flows", handleListFlows(registry))
+	e.POST("/v1/flows/:name/run", handleRunFlow(registry))
 
 	return e
+}
+
+func handleHealth() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":  "ok",
+			"service": "ingestion-pipeline",
+		})
+	}
 }
 
 func handleIndex(registry *flow.FlowRegistry, jobs *store.JobStore) echo.HandlerFunc {
@@ -81,11 +95,49 @@ func handleIndex(registry *flow.FlowRegistry, jobs *store.JobStore) echo.Handler
 
 func handleGetJob(jobs *store.JobStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if jobs == nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "job store not configured"})
+		}
 		id := c.Param("id")
 		job, err := jobs.Get(c.Request().Context(), id)
 		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{"error": "job not found"})
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return c.JSON(http.StatusNotFound, map[string]string{"error": "job not found"})
+			}
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(http.StatusOK, job)
+	}
+}
+
+func handleListFlows(registry *flow.FlowRegistry) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		names := registry.List()
+		return c.JSON(http.StatusOK, map[string][]string{"flows": names})
+	}
+}
+
+func handleRunFlow(registry *flow.FlowRegistry) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		name := c.Param("name")
+
+		// Check existence before running so we can return a clean 404.
+		known := registry.List()
+		found := false
+		for i := range known {
+			if known[i] == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "flow not found: " + name})
+		}
+
+		stats, err := registry.Run(c.Request().Context(), name)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusOK, stats)
 	}
 }
