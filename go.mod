@@ -94,6 +94,6 @@ require (
 // only go.work) so that `go mod tidy` uses the local path directly without
 // attempting VCS resolution for the placeholder v0.0.0 versions.
 replace (
-	github.com/SmrutAI/smritea-sdk/go => ../smritea-sdk/go
-	github.com/tushar2708/conveyor => ../conveyor
+	github.com/SmrutAI/smritea-sdk/go => ./../../smritea-sdk/go
+	github.com/tushar2708/conveyor => ./../conveyor
 )

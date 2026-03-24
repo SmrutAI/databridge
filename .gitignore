@@ -4,3 +4,4 @@ dist/
 *.test
 vendor/
 .DS_Store
+docs

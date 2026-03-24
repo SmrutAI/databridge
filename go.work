@@ -1,10 +1,10 @@
 go 1.25.0
 
-use .
+use ./
 
 // Local development replace directives — mirrors smritea-cloud/cloud_backend/go.work pattern.
 // Both conveyor and smritea-sdk/go are git submodules in the parent smritea-cloud repo.
 replace (
-	github.com/SmrutAI/smritea-sdk/go => ../smritea-sdk/go
-	github.com/tushar2708/conveyor => ../conveyor
+	github.com/SmrutAI/smritea-sdk/go => ./../../smritea-sdk/go
+	github.com/tushar2708/conveyor => ./../conveyor
 )
