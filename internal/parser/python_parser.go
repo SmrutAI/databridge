@@ -19,12 +19,12 @@ type PythonChunk struct {
 // ParsePython parses Python source code using tree-sitter and returns one
 // PythonChunk per top-level function or class definition.
 // src is the full file content as a string.
-func ParsePython(_ context.Context, src string) ([]PythonChunk, error) {
+func ParsePython(ctx context.Context, src string) ([]PythonChunk, error) {
 	parser := sitter.NewParser()
 	parser.SetLanguage(python.GetLanguage())
 
 	srcBytes := []byte(src)
-	tree, err := parser.ParseCtx(context.Background(), nil, srcBytes)
+	tree, err := parser.ParseCtx(ctx, nil, srcBytes)
 	if err != nil {
 		return nil, fmt.Errorf("python parser: parse: %w", err)
 	}

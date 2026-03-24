@@ -171,13 +171,13 @@ check: format build-check lint test-run ## Run format, build-check, lint, and te
 # ============================================
 
 docker-lambda: ## Build Lambda Docker image
-	docker build --target lambda-intake -t databridge-lambda .
+	docker build -f Dockerfile --target lambda-intake -t databridge-lambda ..
 
 docker-azure: ## Build Azure Functions Docker image
-	docker build --target azure-functions -t databridge-azure .
+	docker build -f Dockerfile --target azure-functions -t databridge-azure ..
 
 docker-server: ## Build standalone server Docker image
-	docker build --target standalone -t databridge-server .
+	docker build -f Dockerfile --target standalone -t databridge-server ..
 
 # ============================================
 # DEPS

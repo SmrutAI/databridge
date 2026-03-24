@@ -59,7 +59,7 @@ func (e *APIEmbedder) EmbedBatch(ctx context.Context, texts []string) (_ [][]flo
 		return nil, fmt.Errorf("api embedder: marshal request: %w", marshalErr)
 	}
 
-	req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, e.baseURL+"/v1/embeddings", bytes.NewReader(body))
+	req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, e.baseURL+"/embeddings", bytes.NewReader(body))
 	if reqErr != nil {
 		return nil, fmt.Errorf("api embedder: create request: %w", reqErr)
 	}

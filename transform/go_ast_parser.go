@@ -21,6 +21,9 @@ func (t *GoASTParser) Name() string { return "GoASTParser" }
 // Apply parses the Go file and returns one Record per parsed chunk.
 // Non-Go files are returned as-is (single-element slice).
 func (t *GoASTParser) Apply(_ context.Context, in *core.Record) ([]*core.Record, error) {
+	if in.Action == core.ActionDelete {
+		return []*core.Record{in}, nil
+	}
 	if in.Language != "go" {
 		return []*core.Record{in}, nil
 	}

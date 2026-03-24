@@ -71,15 +71,16 @@ func handleIndex(registry *flow.FlowRegistry, jobs *store.JobStore) echo.Handler
 		}
 
 		go func() {
-			flowName := req.Source
-			if flowName == "" {
-				flowName = "local"
-			}
 			ctx := context.Background()
 			if err := jobs.UpdateStatus(ctx, job.ID, "running", ""); err != nil {
 				return
 			}
-			_, runErr := registry.Run(ctx, flowName)
+			f, buildErr := BuildFlow(req.WorkspaceID, req.Source, req.Config)
+			if buildErr != nil {
+				_ = jobs.UpdateStatus(ctx, job.ID, "failed", buildErr.Error())
+				return
+			}
+			_, runErr := f.Run(ctx)
 			status := "done"
 			errMsg := ""
 			if runErr != nil {

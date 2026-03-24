@@ -87,7 +87,6 @@ func (f *Flow) Run(ctx context.Context) (*core.FlowStats, error) {
 			Name: f.source.Name(),
 		},
 		source:  f.source,
-		ctx:     ctx,
 		counter: &recordsIn,
 	}
 	if err := conveyor.AddSource[*core.Record](cnv, src, conveyor.WorkerModeLoop); err != nil {
@@ -164,14 +163,13 @@ func (f *Flow) Run(ctx context.Context) (*core.FlowStats, error) {
 type sourceAdapter struct {
 	*conveyor.ConcreteSourceExecutor[*core.Record]
 	source  core.Source
-	ctx     context.Context
 	counter *atomic.Int64
 }
 
 // ExecuteLoop streams all records from the source into outChan.
 // It returns as soon as the source channel is closed or ctx is cancelled.
 func (a *sourceAdapter) ExecuteLoop(ctx conveyor.CnvContext, outChan chan<- *core.Record) error {
-	records, err := a.source.Records(a.ctx)
+	records, err := a.source.Records(ctx)
 	if err != nil {
 		return fmt.Errorf("source %s: records: %w", a.source.Name(), err)
 	}

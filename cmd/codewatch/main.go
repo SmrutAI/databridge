@@ -30,6 +30,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "create embedder: %v\n", err)
 		os.Exit(1)
 	}
+	defer emb.Close() //nolint:errcheck
 
 	tree := merkle.NewTree()
 
@@ -46,6 +47,8 @@ func main() {
 		Source(src).
 		Transform(transform.NewMerkleDedup(tree)).
 		Transform(&transform.GoASTParser{}).
+		Transform(&transform.PythonASTParser{}).
+		Transform(&transform.MarkdownChunker{}).
 		Transform(transform.NewChunkEmbedder(emb)).
 		Sink(smriteaSink)
 

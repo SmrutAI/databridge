@@ -20,6 +20,9 @@ func (t *MarkdownChunker) Name() string { return "MarkdownChunker" }
 // Each section becomes a separate Record whose Symbol is the heading text.
 // If there are no headings the whole document is returned as a single record.
 func (t *MarkdownChunker) Apply(_ context.Context, in *core.Record) ([]*core.Record, error) {
+	if in.Action == core.ActionDelete {
+		return []*core.Record{in}, nil
+	}
 	if in.Language != "markdown" {
 		return []*core.Record{in}, nil
 	}
@@ -31,12 +34,12 @@ func (t *MarkdownChunker) Apply(_ context.Context, in *core.Record) ([]*core.Rec
 		return []*core.Record{in}, nil
 	}
 	out := make([]*core.Record, 0, len(sections))
-	for i, sec := range sections {
+	for _, sec := range sections {
 		if strings.TrimSpace(sec.content) == "" {
 			continue
 		}
 		r := &core.Record{
-			ID:          fmt.Sprintf("%s#%d", in.ID, i),
+			ID:          fmt.Sprintf("%s#%s", in.ID, sec.heading),
 			SourceID:    in.SourceID,
 			Path:        in.Path,
 			Symbol:      sec.heading,

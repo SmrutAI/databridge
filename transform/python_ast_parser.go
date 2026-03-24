@@ -20,6 +20,9 @@ func (t *PythonASTParser) Name() string { return "PythonASTParser" }
 // Apply parses the Python file and returns one Record per parsed chunk.
 // If parsing fails or produces no chunks, the whole file is returned as a single record.
 func (t *PythonASTParser) Apply(ctx context.Context, in *core.Record) ([]*core.Record, error) {
+	if in.Action == core.ActionDelete {
+		return []*core.Record{in}, nil
+	}
 	if in.Language != "python" {
 		return []*core.Record{in}, nil
 	}
