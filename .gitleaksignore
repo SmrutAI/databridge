@@ -1,0 +1,16 @@
+# Gitleaks false-positive suppressions.
+#
+# Each line is a "fingerprint" from gitleaks output. Fingerprints are
+# stable identifiers: file path + rule ID + line number. Adding a
+# fingerprint here tells gitleaks to skip that specific finding.
+#
+# HOW TO ADD:
+#   1. Run: pre-commit run gitleaks --all-files
+#   2. Copy the "Fingerprint:" value from the finding
+#   3. Add it here with a comment explaining WHY it's safe
+#
+# REVIEW: Audit this file periodically. Remove entries for rotated/deleted secrets.
+
+# Go module checksum hash in go.work.sum — h1: prefix is a SHA-256 digest of the
+# module zip, not a secret. High entropy triggers gitleaks generic-api-key rule.
+go.work.sum:generic-api-key:103

@@ -1,0 +1,90 @@
+# Pre-commit hooks configuration for ingestion-pipeline
+#
+# Setup:
+#   pip install pre-commit && pre-commit install
+#
+# Usage:
+#   pre-commit run --all-files              # Run all active hooks
+#   pre-commit run <hook-id>                # Run specific hook
+#
+# To skip hooks temporarily:
+#   git commit --no-verify -m "message"
+#
+# Hook execution order:
+#   1. Security (gitleaks)
+#   2. Go module sync (go work sync + go mod tidy)
+#   3. Go format (golangci-lint --fix + goimports + gci)
+#   4. Go build check (compile-only, fail-early)
+#   5. golangci-lint
+#   6. Go unit tests
+
+repos:
+  # ============================================
+  # 1. SECURITY HOOKS (run first)
+  # ============================================
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # ============================================
+  # 2. GO MODULE SYNC (before build check)
+  # ============================================
+  - repo: local
+    hooks:
+      - id: go-module-sync
+        name: Go module sync
+        description: Syncs workspace and tidies modules
+        entry: make vendor
+        language: system
+        files: \.(go|mod|sum)$
+        pass_filenames: false
+
+  # ============================================
+  # 3. GO FORMAT (auto-fix + goimports + gci)
+  # ============================================
+  - repo: local
+    hooks:
+      - id: go-format
+        name: Go format
+        description: Runs make format (golangci-lint --fix, goimports, gci)
+        entry: make format
+        language: system
+        types: [go]
+        pass_filenames: false
+
+  # ============================================
+  # 4. GO BUILD CHECK
+  # ============================================
+  - repo: local
+    hooks:
+      - id: check-build
+        name: Go build check
+        description: Runs make build-check (compile-only, no output binaries)
+        entry: make build-check
+        language: system
+        types: [go]
+        pass_filenames: false
+
+  # ============================================
+  # 5-6. LINT & TESTS
+  # ============================================
+  - repo: local
+    hooks:
+      # 5. golangci-lint (via Makefile)
+      - id: golangci-lint
+        name: golangci-lint
+        description: Runs make lint (go vet + configured linters)
+        entry: make lint
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      # 6. Go unit tests
+      - id: check-go-tests
+        name: Run Go unit tests
+        description: Runs make test-run
+        entry: make test-run
+        language: system
+        types: [go]
+        pass_filenames: false

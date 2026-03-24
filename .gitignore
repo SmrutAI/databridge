@@ -1,0 +1,6 @@
+dist/
+*.log
+.env
+*.test
+vendor/
+.DS_Store
