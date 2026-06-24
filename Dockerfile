@@ -1,26 +1,23 @@
 # syntax=docker/dockerfile:1
 #
-# Build context must be the smritea-cloud root:
-#   docker build -f databridge/Dockerfile --target <target> .
-#
-# go.work replace directives inside databridge/ reference ../conveyor
-# and ../smritea-sdk/go.  We therefore copy all three sibling trees into /src/
-# so that /src/databridge/go.work can resolve ../conveyor → /src/conveyor.
+# Build the image with a context two levels above this Dockerfile, so the sibling module
+# checkouts referenced by the go.work replace directives are available to COPY. The
+# Makefile invokes it as: docker build -f Dockerfile --target <target> ../..
 
 # ── build stage ──────────────────────────────────────────────────────────────
 FROM golang:1.22-bookworm AS builder
 
 WORKDIR /src
 
-# Copy sibling dependency trees first (referenced by go.work replace directives)
-COPY conveyor/       ./conveyor/
-COPY smritea-sdk/go/ ./smritea-sdk/go/
+# Copy the sibling dependency trees first (referenced by go.work replace directives).
+COPY golang/conveyor/        ./golang/conveyor/
+COPY polyglot/smritea-sdk/go/ ./polyglot/smritea-sdk/go/
 
 # Copy the pipeline source tree; go.work lives here and its replace directives
-# now resolve correctly: ../conveyor → /src/conveyor, ../smritea-sdk/go → /src/smritea-sdk/go
-COPY databridge/ ./databridge/
+# resolve against the sibling trees copied above.
+COPY golang/databridge/ ./golang/databridge/
 
-WORKDIR /src/databridge
+WORKDIR /src/golang/databridge
 
 RUN go mod download
 
@@ -36,8 +33,8 @@ CMD ["bootstrap"]
 # ── azure-functions ──────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS azure-functions
 COPY --from=builder /out/server /app/server
-COPY databridge/host.json /app/host.json
-COPY databridge/api/      /app/api/
+COPY golang/databridge/host.json /app/host.json
+COPY golang/databridge/api/      /app/api/
 WORKDIR /app
 CMD ["/app/server"]
 

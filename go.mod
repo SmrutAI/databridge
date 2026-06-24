@@ -89,11 +89,10 @@ require (
 	k8s.io/klog/v2 v2.140.0 // indirect
 )
 
-// Local development replace directives — both conveyor and smritea-sdk/go are
-// git submodules in the parent smritea-cloud repo. These must be in go.mod (not
-// only go.work) so that `go mod tidy` uses the local path directly without
+// Local development replace directives for sibling module checkouts. These must be in
+// go.mod (not only go.work) so that `go mod tidy` uses the local path directly without
 // attempting VCS resolution for the placeholder v0.0.0 versions.
 replace (
-	github.com/SmrutAI/smritea-sdk/go => ./../../smritea-sdk/go
+	github.com/SmrutAI/smritea-sdk/go => ./../../polyglot/smritea-sdk/go
 	github.com/tushar2708/conveyor => ./../conveyor
 )
