@@ -16,13 +16,13 @@ unchanged content with a Merkle tree, and writes the results to one or more sink
 
 | Component | Path | Responsibility |
 |-----------|------|----------------|
-| Sources | `modules/golang/databridge/source/` | Read files from local disk, S3, or Azure Blob |
-| Transforms | `modules/golang/databridge/transform/` | Merkle dedup, Go/Python AST parsing, markdown chunking, embedding |
-| Sinks | `modules/golang/databridge/sink/` | Write chunks to Smritea, Qdrant, or PostgreSQL |
-| HTTP server | `modules/golang/databridge/server/` | Echo app exposing the `/v1/*` ingestion API |
-| Entrypoints | `modules/golang/databridge/cmd/` | The `server`, `lambda`, and `codewatch` binaries |
-| Internal libs | `modules/golang/databridge/internal/` | Embedder, Merkle tree, parsers, job store, flow engine |
-| Azure binding | `modules/golang/databridge/api/` | Azure Functions HTTP-trigger definition |
+| Sources | `source/` | Read files from local disk, S3, or Azure Blob |
+| Transforms | `transform/` | Merkle dedup, Go/Python AST parsing, markdown chunking, embedding |
+| Sinks | `sink/` | Write chunks to Smritea, Qdrant, or PostgreSQL |
+| HTTP server | `server/` | Echo app exposing the `/v1/*` ingestion API |
+| Entrypoints | `cmd/` | The `server`, `lambda`, and `codewatch` binaries |
+| Internal libs | `internal/` | Embedder, Merkle tree, parsers, job store, flow engine |
+| Azure binding | `api/` | Azure Functions HTTP-trigger definition |
 
 ## Pipeline
 
@@ -40,7 +40,7 @@ environment variables and at least one must be configured.
 
 ## Build
 
-All build targets live in the module Makefile (`modules/golang/databridge/Makefile`).
+All build targets live in the module Makefile (`Makefile`).
 Binaries are written to a `dist` directory under the module:
 
 ```bash
@@ -92,7 +92,7 @@ for Azure.
 ### Deployment targets
 
 The same server binary runs as an Azure Functions custom handler
-(`modules/golang/databridge/host.json` plus `modules/golang/databridge/api/function.json`).
+(`host.json` plus `api/function.json`).
 `make build-lambda` produces an AWS Lambda `bootstrap` binary. Docker images:
 
 ```bash
