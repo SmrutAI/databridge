@@ -34,7 +34,7 @@ func NewSmriteaSink() (*SmriteaSink, error) {
 		APIKey:     apiKey,
 		AppID:      appID,
 		BaseURL:    baseURL,
-		MaxRetries: 2,
+		MaxRetries: smritea.Int(2),
 	})
 	return &SmriteaSink{client: client}, nil
 }
